@@ -1,30 +1,68 @@
 package basicStart;
 
 import io.restassured.RestAssured;
+import org.testng.Assert;
+import payLoads.Payload;
+import utils.Utilities;
+
 import static io.restassured.RestAssured.*;
+import static org.hamcrest.Matchers.*;
 
 public class Basic {
     public static void main(String[] args){
 
+        Utilities util = new Utilities();
         // given , when, then
+
+        //#1. Adding the address
         RestAssured.baseURI = "https://rahulshettyacademy.com/";
-        given().log().all().queryParam("Key","qaclick123").header("Content-Type","application/json")
-                .body("{\n" +
-                        "    \"location\": {\n" +
-                        "        \"lat\": -38.383494,\n" +
-                        "        \"lng\": 33.427362\n" +
-                        "    },\n" +
-                        "    \"accuracy\": 50,\n" +
-                        "    \"name\": \"Frontline house\",\n" +
-                        "    \"phone_number\": \"(+91) 983 893 3937\",\n" +
-                        "    \"address\": \"29, side layout, cohen 09\",\n" +
-                        "    \"types\": [\n" +
-                        "        \"shoe park\",\n" +
-                        "        \"shop\"\n" +
-                        "    ],\n" +
-                        "    \"website\": \"http://google.com\",\n" +
-                        "    \"language\": \"French-IN\"\n" +
-                        "}").when().post("/maps/api/place/add/json")
-                .then().log().all().assertThat().statusCode(209);
+        String addApiResponse = given().log().all()
+                .queryParam("Key", "qaclick123")
+                .header("Content-Type", "application/json")
+                .body(Payload.addPlacePayload())
+                .when()
+                .post("/maps/api/place/add/json")
+                .then().assertThat().statusCode(200)
+                .body("scope", equalTo("APP"))
+                .header("Server", "Apache/2.4.52 (Ubuntu)")
+                .extract().response().asString();
+
+        System.out.println("Response:"+addApiResponse);
+
+        String placeId = util.getObjectValueFromJson(util.stringToJson(addApiResponse),"place_id");
+        System.out.println("Place id:"+placeId);
+
+        //#2. updating the address
+        String addApiResponseUpdate = given().log().all()
+                .queryParam("Key","qaclick123")
+                .header("Content-Type","application/json")
+                .body(Payload.updatePlacePayload(placeId, Payload.Address.MUMBAI_ADDRESS.locationAddress))
+                .when().put("maps/api/place/update/json").then().assertThat().statusCode(200)
+                .body("msg",equalTo("Address successfully updated"))
+                .extract().response().asString();
+
+        System.out.println("Update Response:"+addApiResponseUpdate);
+
+        //#3. validating the updated address- get
+        String getExistingAddress = given().log().all()
+                .queryParam("place_id",placeId)
+                .queryParam("key","qaclick123")
+                .when()
+                .get("/maps/api/place/get/json")
+                .then().assertThat().statusCode(200)
+                .extract().response().asString();
+
+        System.out.println("get Response:"+getExistingAddress);
+
+
+        String addressFromJson = util.getObjectValueFromJson(util.stringToJson(getExistingAddress),"address");
+        System.out.println("Address :"+addressFromJson);
+
+        Assert.assertEquals(addressFromJson,Payload.Address.MUMBAI_ADDRESS.locationAddress,"The address doe not match");
+
+
+
+
+
     }
 }
