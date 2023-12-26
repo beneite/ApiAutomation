@@ -1,7 +1,12 @@
+/**
+ * using collections : src/main/resources/Google+Place+APIs.postman_collection.json
+ * API contract doc: src/main/resources/Google place API.docx
+ */
 package basicStart;
 
 import io.restassured.RestAssured;
 import org.testng.Assert;
+import org.testng.annotations.Test;
 import payLoads.Payload;
 import utils.Utilities;
 
@@ -9,9 +14,12 @@ import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
 public class Basic {
-    public static void main(String[] args){
 
-        Utilities util = new Utilities();
+
+    Utilities util = new Utilities();
+
+    @Test
+    public void basicApiTest() {
         // given , when, then
 
         //#1. Adding the address
@@ -27,41 +35,38 @@ public class Basic {
                 .header("Server", "Apache/2.4.52 (Ubuntu)")
                 .extract().response().asString();
 
-        System.out.println("Response:"+addApiResponse);
+        System.out.println("Response:" + addApiResponse);
 
-        String placeId = util.getObjectValueFromJson(util.stringToJson(addApiResponse),"place_id");
-        System.out.println("Place id:"+placeId);
+        String placeId = util.getObjectValueFromJson(util.stringToJson(addApiResponse), "place_id");
+        System.out.println("Place id:" + placeId);
 
         //#2. updating the address
         String addApiResponseUpdate = given().log().all()
-                .queryParam("Key","qaclick123")
-                .header("Content-Type","application/json")
+                .queryParam("Key", "qaclick123")
+                .header("Content-Type", "application/json")
                 .body(Payload.updatePlacePayload(placeId, Payload.Address.MUMBAI_ADDRESS.locationAddress))
                 .when().put("maps/api/place/update/json").then().assertThat().statusCode(200)
-                .body("msg",equalTo("Address successfully updated"))
+                .body("msg", equalTo("Address successfully updated"))
                 .extract().response().asString();
 
-        System.out.println("Update Response:"+addApiResponseUpdate);
+        System.out.println("Update Response:" + addApiResponseUpdate);
 
         //#3. validating the updated address- get
         String getExistingAddress = given().log().all()
-                .queryParam("place_id",placeId)
-                .queryParam("key","qaclick123")
+                .queryParam("place_id", placeId)
+                .queryParam("key", "qaclick123")
                 .when()
                 .get("/maps/api/place/get/json")
                 .then().assertThat().statusCode(200)
                 .extract().response().asString();
 
-        System.out.println("get Response:"+getExistingAddress);
+        System.out.println("get Response:" + getExistingAddress);
 
 
-        String addressFromJson = util.getObjectValueFromJson(util.stringToJson(getExistingAddress),"address");
-        System.out.println("Address :"+addressFromJson);
+        String addressFromJson = util.getObjectValueFromJson(util.stringToJson(getExistingAddress), "address");
+        System.out.println("Address :" + addressFromJson);
 
-        Assert.assertEquals(addressFromJson,Payload.Address.MUMBAI_ADDRESS.locationAddress,"The address doe not match");
-
-
-
+        Assert.assertEquals(addressFromJson, Payload.Address.MUMBAI_ADDRESS.locationAddress, "The address doe not match");
 
 
     }
